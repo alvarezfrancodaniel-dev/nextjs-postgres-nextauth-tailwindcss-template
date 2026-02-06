@@ -1,11 +1,14 @@
 import './globals.css';
 
+import { Inter } from 'next/font/google';
 import { Analytics } from '@vercel/analytics/react';
 
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
+
 export const metadata = {
-  title: 'Next.js App Router + NextAuth + Tailwind CSS',
+  title: 'Gomeria - Sistema de Gestion',
   description:
-    'A user admin dashboard configured with Next.js, Postgres, NextAuth, Tailwind CSS, TypeScript, and Prettier.'
+    'Sistema de gestion para gomeria. Administra clientes, pedidos, inventario y finanzas.'
 };
 
 export default function RootLayout({
@@ -14,8 +17,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className="flex min-h-screen w-full flex-col">{children}</body>
+    <html lang="es">
+      <body className={`${inter.variable} font-sans flex min-h-screen w-full flex-col`}>
+        {children}
+      </body>
       <Analytics />
     </html>
   );
