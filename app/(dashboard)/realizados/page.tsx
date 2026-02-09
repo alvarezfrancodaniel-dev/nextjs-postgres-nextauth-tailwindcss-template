@@ -14,8 +14,9 @@ import {
   TableRow
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { getPedidos } from '@/lib/db';
+import { getPedidos, getClientes } from '@/lib/db';
 import { CheckCircle2 } from 'lucide-react';
+import { AgregarRealizado } from './agregar-realizado';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,7 +36,10 @@ export default async function RealizadosPage(
 ) {
   const searchParams = await props.searchParams;
   const search = searchParams.q ?? '';
-  const realizadosList = await getPedidos(search, 'realizado');
+  const [realizadosList, clientesList] = await Promise.all([
+    getPedidos(search, 'realizado'),
+    getClientes('')
+  ]);
 
   const totalFacturado = realizadosList.reduce(
     (sum, p) => sum + Number(p.total),
@@ -44,13 +48,16 @@ export default async function RealizadosPage(
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">
-          Realizados
-        </h1>
-        <p className="text-muted-foreground">
-          Trabajos completados
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            Realizados
+          </h1>
+          <p className="text-muted-foreground">
+            Trabajos completados
+          </p>
+        </div>
+        <AgregarRealizado clientes={clientesList.map(c => ({ id: c.id, nombre: c.nombre }))} />
       </div>
 
       <div className="grid gap-4 grid-cols-2">

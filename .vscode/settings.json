@@ -1,7 +1,4 @@
 {
   "typescript.tsdk": "node_modules/typescript/lib",
-  "typescript.enablePromptUseWorkspaceTsdk": true,
-  "files.readonlyInclude": {
-    "**/*": true
-  }
+  "typescript.enablePromptUseWorkspaceTsdk": true
 }

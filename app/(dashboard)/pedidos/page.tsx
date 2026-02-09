@@ -14,8 +14,9 @@ import {
   TableRow
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { getPedidos } from '@/lib/db';
+import { getPedidos, getClientes } from '@/lib/db';
 import { ClipboardList, Clock, Wrench } from 'lucide-react';
+import { AgregarPedido } from './agregar-pedido';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,19 +48,25 @@ export default async function PedidosPage(
   const search = searchParams.q ?? '';
 
   // Get only pendiente and en_progreso orders
-  const pendientes = await getPedidos(search, 'pendiente');
-  const enProgreso = await getPedidos(search, 'en_progreso');
+  const [pendientes, enProgreso, clientesList] = await Promise.all([
+    getPedidos(search, 'pendiente'),
+    getPedidos(search, 'en_progreso'),
+    getClientes('')
+  ]);
   const pedidosList = [...pendientes, ...enProgreso];
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">
-          Pedidos
-        </h1>
-        <p className="text-muted-foreground">
-          Pedidos pendientes y en progreso
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            Pedidos
+          </h1>
+          <p className="text-muted-foreground">
+            Pedidos pendientes y en progreso
+          </p>
+        </div>
+        <AgregarPedido clientes={clientesList.map(c => ({ id: c.id, nombre: c.nombre }))} />
       </div>
 
       {/* Summary Cards */}
