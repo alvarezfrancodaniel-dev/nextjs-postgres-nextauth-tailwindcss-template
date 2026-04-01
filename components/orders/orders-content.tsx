@@ -104,10 +104,10 @@ export function OrdersContent({ orders, clients }: OrdersContentProps) {
   const filtered = orders.filter((o) => {
     const q = search.toLowerCase()
     return (
-      o.order_number.toString().includes(q) ||
+      (o.order_number?.toString() || '').includes(q) ||
       (o.clients?.name?.toLowerCase() || '').includes(q) ||
       (o.clients?.license_plate?.toLowerCase() || '').includes(q) ||
-      o.service_type.toLowerCase().includes(q)
+      (o.service_type?.toLowerCase() || '').includes(q)
     )
   })
 
@@ -263,7 +263,7 @@ export function OrdersContent({ orders, clients }: OrdersContentProps) {
                 <TableBody>
                   {filtered.map((order) => (
                     <TableRow key={order.id}>
-                      <TableCell className="font-medium">#{order.order_number}</TableCell>
+                      <TableCell className="font-medium">#{order.order_number ?? '-'}</TableCell>
                       <TableCell className="text-muted-foreground">
                         {formatDate(order.created_at)}
                       </TableCell>

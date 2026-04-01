@@ -305,7 +305,7 @@ export function RemitosContent({ remitos, clients, products }: RemitosContentPro
                 <TableBody>
                   {filtered.map((remito) => (
                     <TableRow key={remito.id}>
-                      <TableCell className="font-medium">#{remito.remito_number}</TableCell>
+                      <TableCell className="font-medium">#{remito.remito_number ?? '-'}</TableCell>
                       <TableCell>
                         <Badge variant={remito.doc_type === 'presupuesto' ? 'secondary' : 'default'}>
                           {docTypes.find((d) => d.value === remito.doc_type)?.label || remito.doc_type}
