@@ -1,13 +1,17 @@
 import { createClient } from '@/lib/supabase/server'
 import { OrdersContent } from '@/components/orders/orders-content'
 
+export const dynamic = 'force-dynamic'
+
 export default async function OrdersPage() {
   const supabase = await createClient()
 
-  const { data: orders } = await supabase
+  const { data: orders, error: ordersError } = await supabase
     .from('service_orders')
     .select('*, clients(name, vehicle_brand, vehicle_model, license_plate)')
     .order('created_at', { ascending: false })
+
+  console.log('[v0] Orders page - fetched orders:', orders?.length, 'error:', ordersError)
 
   const { data: clients } = await supabase
     .from('clients')

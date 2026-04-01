@@ -266,16 +266,20 @@ export function OrdersContent({ orders, clients, products }: OrdersContentProps)
         .update(payload)
         .eq('id', editingOrder.id)
       if (error) {
+        console.log('[v0] Error updating order:', error)
         toast.error('Error al actualizar: ' + error.message)
       } else {
+        console.log('[v0] Order updated successfully')
         toast.success('Orden actualizada')
       }
     } else {
+      console.log('[v0] Creating order with payload:', payload)
       const { data: newOrder, error } = await supabase
         .from('service_orders')
         .insert(payload)
         .select()
         .single()
+      console.log('[v0] Create order result:', { newOrder, error })
       if (error) {
         toast.error('Error al crear: ' + error.message)
       } else {
@@ -297,6 +301,7 @@ export function OrdersContent({ orders, clients, products }: OrdersContentProps)
 
     setIsLoading(false)
     setDialogOpen(false)
+    console.log('[v0] Calling router.refresh()')
     router.refresh()
   }
 

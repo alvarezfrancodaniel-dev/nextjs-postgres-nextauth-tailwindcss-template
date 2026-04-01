@@ -212,7 +212,9 @@ export function RemitosContent({ remitos, clients, products }: RemitosContentPro
       updated_at: new Date().toISOString(),
     }
 
-    const { error } = await supabase.from('remitos').insert(payload)
+    console.log('[v0] Creating remito with payload:', payload)
+    const { data: newRemito, error } = await supabase.from('remitos').insert(payload).select().single()
+    console.log('[v0] Create remito result:', { newRemito, error })
     if (error) {
       toast.error('Error al crear: ' + error.message)
     } else {
@@ -221,6 +223,7 @@ export function RemitosContent({ remitos, clients, products }: RemitosContentPro
 
     setIsLoading(false)
     setDialogOpen(false)
+    console.log('[v0] Calling router.refresh()')
     router.refresh()
   }
 
