@@ -6,17 +6,22 @@ export const dynamic = 'force-dynamic'
 export default async function RemitosPage() {
   const supabase = await createClient()
 
-  const { data: remitos, error: remitosError } = await supabase
-    .from('remitos')
-    .select('*, clients(name, cuit, address, vehicle_brand, vehicle_model, license_plate)')
-    .order('created_at', { ascending: false })
-
-  console.log('[v0] Remitos page - fetched remitos:', remitos?.length, 'error:', remitosError)
-
   const { data: clients } = await supabase
     .from('clients')
     .select('id, name, cuit, address, vehicle_brand, vehicle_model, license_plate')
     .order('name')
+
+  const { data: remitosRaw } = await supabase
+    .from('remitos')
+    .select('*')
+    .order('created_at', { ascending: false })
+
+  // Manual join since foreign key relationship may not exist in database
+  const clientsMap = new Map((clients ?? []).map(c => [c.id, c]))
+  const remitos = (remitosRaw ?? []).map(r => ({
+    ...r,
+    clients: r.client_id ? clientsMap.get(r.client_id) ?? null : null
+  }))
 
   const { data: products } = await supabase
     .from('products')
@@ -26,7 +31,7 @@ export default async function RemitosPage() {
 
   return (
     <RemitosContent
-      remitos={remitos ?? []}
+      remitos={remitos}
       clients={clients ?? []}
       products={products ?? []}
     />
