@@ -8,7 +8,7 @@ export default async function RemitosPage() {
 
   const { data: remitos } = await supabase
     .from('remitos')
-    .select('*, clients(name, cuit, address, vehicle_brand, vehicle_model, license_plate)')
+    .select('*, clients(id, name, cuit, address, vehicle_brand, vehicle_model, license_plate)')
     .order('created_at', { ascending: false })
 
   const { data: clients } = await supabase
