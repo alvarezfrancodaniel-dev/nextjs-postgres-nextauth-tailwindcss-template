@@ -33,7 +33,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
-import { Plus, Search, Pencil, Trash2, ClipboardList } from 'lucide-react'
+import { Plus, Search, Pencil, Trash2, ClipboardList, X } from 'lucide-react'
 
 interface Client {
   id: string
@@ -43,6 +43,22 @@ interface Client {
   license_plate: string | null
 }
 
+interface Product {
+  id: string
+  name: string
+  brand: string | null
+  size: string | null
+  sale_price: number
+  stock: number
+}
+
+interface OrderItem {
+  product_id: string | null
+  description: string
+  quantity: number
+  unit_price: number
+}
+
 interface Order {
   id: string
   order_number: number
@@ -50,6 +66,7 @@ interface Order {
   service_type: string
   status: string
   description: string | null
+  items: OrderItem[]
   total: number
   created_at: string
   clients: Client | null
@@ -58,6 +75,7 @@ interface Order {
 interface OrdersContentProps {
   orders: Order[]
   clients: Client[]
+  products: Product[]
 }
 
 const serviceTypes = [
@@ -83,15 +101,21 @@ const statusColors: Record<string, string> = {
   cancelado: 'bg-red-100 text-red-800',
 }
 
+const emptyItem: OrderItem = {
+  product_id: null,
+  description: '',
+  quantity: 1,
+  unit_price: 0,
+}
+
 const emptyForm = {
   client_id: '',
   service_type: 'otro',
   status: 'pendiente',
   description: '',
-  total: '',
 }
 
-export function OrdersContent({ orders, clients }: OrdersContentProps) {
+export function OrdersContent({ orders, clients, products }: OrdersContentProps) {
   const router = useRouter()
   const [search, setSearch] = useState('')
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -100,6 +124,7 @@ export function OrdersContent({ orders, clients }: OrdersContentProps) {
   const [editingOrder, setEditingOrder] = useState<Order | null>(null)
   const [deletingOrder, setDeletingOrder] = useState<Order | null>(null)
   const [form, setForm] = useState(emptyForm)
+  const [items, setItems] = useState<OrderItem[]>([{ ...emptyItem }])
 
   const filtered = orders.filter((o) => {
     const q = search.toLowerCase()
@@ -111,9 +136,14 @@ export function OrdersContent({ orders, clients }: OrdersContentProps) {
     )
   })
 
+  const calculateTotal = () => {
+    return items.reduce((sum, item) => sum + item.quantity * item.unit_price, 0)
+  }
+
   const openCreate = () => {
     setEditingOrder(null)
     setForm(emptyForm)
+    setItems([{ ...emptyItem }])
     setDialogOpen(true)
   }
 
@@ -124,14 +154,40 @@ export function OrdersContent({ orders, clients }: OrdersContentProps) {
       service_type: order.service_type,
       status: order.status,
       description: order.description || '',
-      total: order.total?.toString() || '',
     })
+    setItems(order.items?.length > 0 ? order.items : [{ ...emptyItem }])
     setDialogOpen(true)
   }
 
   const openDelete = (order: Order) => {
     setDeletingOrder(order)
     setDeleteDialogOpen(true)
+  }
+
+  const addItem = () => {
+    setItems([...items, { ...emptyItem }])
+  }
+
+  const removeItem = (index: number) => {
+    if (items.length > 1) {
+      setItems(items.filter((_, i) => i !== index))
+    }
+  }
+
+  const updateItem = (index: number, field: keyof OrderItem, value: string | number | null) => {
+    const newItems = [...items]
+    newItems[index] = { ...newItems[index], [field]: value }
+    
+    // If selecting a product, auto-fill description and price
+    if (field === 'product_id' && value) {
+      const product = products.find((p) => p.id === value)
+      if (product) {
+        newItems[index].description = `${product.name} ${product.brand || ''} ${product.size || ''}`.trim()
+        newItems[index].unit_price = product.sale_price
+      }
+    }
+    
+    setItems(newItems)
   }
 
   const handleSave = async () => {
@@ -145,13 +201,16 @@ export function OrdersContent({ orders, clients }: OrdersContentProps) {
       return
     }
 
+    const validItems = items.filter((item) => item.description.trim() || item.product_id)
+
     const payload = {
       user_id: user.id,
       client_id: form.client_id || null,
       service_type: form.service_type,
       status: form.status,
       description: form.description || null,
-      total: parseFloat(form.total) || 0,
+      items: validItems,
+      total: calculateTotal(),
       updated_at: new Date().toISOString(),
     }
 
@@ -255,6 +314,7 @@ export function OrdersContent({ orders, clients }: OrdersContentProps) {
                     <TableHead>Fecha</TableHead>
                     <TableHead>Cliente</TableHead>
                     <TableHead>Servicio</TableHead>
+                    <TableHead>Items</TableHead>
                     <TableHead>Estado</TableHead>
                     <TableHead className="text-right">Total</TableHead>
                     <TableHead className="text-right">Acciones</TableHead>
@@ -284,6 +344,7 @@ export function OrdersContent({ orders, clients }: OrdersContentProps) {
                       <TableCell>
                         {serviceTypes.find((s) => s.value === order.service_type)?.label || order.service_type}
                       </TableCell>
+                      <TableCell>{order.items?.length || 0} items</TableCell>
                       <TableCell>
                         <Badge className={statusColors[order.status] || ''}>
                           {statusOptions.find((s) => s.value === order.status)?.label || order.status}
@@ -313,7 +374,7 @@ export function OrdersContent({ orders, clients }: OrdersContentProps) {
 
       {/* Create/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingOrder ? 'Editar Orden' : 'Nueva Orden'}</DialogTitle>
             <DialogDescription>
@@ -369,22 +430,94 @@ export function OrdersContent({ orders, clients }: OrdersContentProps) {
               </div>
             </div>
             <div className="grid gap-2">
-              <Label>Descripcion</Label>
+              <Label>Descripcion / Notas</Label>
               <Textarea
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
                 placeholder="Detalles del trabajo..."
-                rows={3}
+                rows={2}
               />
             </div>
-            <div className="grid gap-2">
-              <Label>Total ($)</Label>
-              <Input
-                type="number"
-                value={form.total}
-                onChange={(e) => setForm({ ...form, total: e.target.value })}
-                placeholder="0.00"
-              />
+
+            {/* Items */}
+            <div className="border rounded-lg p-4">
+              <div className="flex items-center justify-between mb-4">
+                <Label className="text-base font-semibold">Items / Productos</Label>
+                <Button type="button" variant="outline" size="sm" onClick={addItem}>
+                  <Plus className="h-4 w-4 mr-1" />
+                  Agregar
+                </Button>
+              </div>
+              <div className="flex flex-col gap-3">
+                {items.map((item, index) => (
+                  <div key={index} className="grid grid-cols-12 gap-2 items-end">
+                    <div className="col-span-4">
+                      <Label className="text-xs text-muted-foreground">Producto</Label>
+                      <Select
+                        value={item.product_id || ''}
+                        onValueChange={(v) => updateItem(index, 'product_id', v || null)}
+                      >
+                        <SelectTrigger className="h-9">
+                          <SelectValue placeholder="Seleccionar..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {products.map((product) => (
+                            <SelectItem key={product.id} value={product.id}>
+                              {product.name} - ${product.sale_price}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="col-span-3">
+                      <Label className="text-xs text-muted-foreground">Descripcion</Label>
+                      <Input
+                        className="h-9"
+                        value={item.description}
+                        onChange={(e) => updateItem(index, 'description', e.target.value)}
+                        placeholder="Descripcion..."
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <Label className="text-xs text-muted-foreground">Cantidad</Label>
+                      <Input
+                        className="h-9"
+                        type="number"
+                        min="1"
+                        value={item.quantity}
+                        onChange={(e) => updateItem(index, 'quantity', parseInt(e.target.value) || 1)}
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <Label className="text-xs text-muted-foreground">Precio Unit.</Label>
+                      <Input
+                        className="h-9"
+                        type="number"
+                        step="0.01"
+                        value={item.unit_price}
+                        onChange={(e) => updateItem(index, 'unit_price', parseFloat(e.target.value) || 0)}
+                      />
+                    </div>
+                    <div className="col-span-1">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-9 w-9"
+                        onClick={() => removeItem(index)}
+                        disabled={items.length === 1}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="flex justify-end mt-4 pt-4 border-t">
+                <div className="text-lg font-semibold">
+                  Total: ${calculateTotal().toLocaleString('es-AR')}
+                </div>
+              </div>
             </div>
           </div>
           <DialogFooter>

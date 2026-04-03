@@ -33,7 +33,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
-import { Plus, Search, Pencil, Trash2, FileText, X } from 'lucide-react'
+import { Plus, Search, Pencil, Trash2, FileText, X, Printer } from 'lucide-react'
 
 interface Client {
   id: string
@@ -250,6 +250,96 @@ export function RemitosContent({ remitos, clients, products }: RemitosContentPro
     })
   }
 
+  const handlePrint = (remito: Remito) => {
+    const printWindow = window.open('', '_blank')
+    if (!printWindow) {
+      toast.error('No se pudo abrir la ventana de impresion')
+      return
+    }
+
+    const docTypeLabel = docTypes.find((d) => d.value === remito.doc_type)?.label || remito.doc_type
+
+    const itemsHtml = (remito.items || [])
+      .map(
+        (item, i) => `
+        <tr>
+          <td style="padding: 8px; border-bottom: 1px solid #eee;">${i + 1}</td>
+          <td style="padding: 8px; border-bottom: 1px solid #eee;">${item.description}</td>
+          <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">${item.quantity}</td>
+          <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">$${Number(item.unit_price).toLocaleString('es-AR')}</td>
+          <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">$${Number(item.quantity * item.unit_price).toLocaleString('es-AR')}</td>
+        </tr>
+      `
+      )
+      .join('')
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>${docTypeLabel} #${remito.remito_number}</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; }
+          .header { display: flex; justify-content: space-between; margin-bottom: 30px; }
+          .title { font-size: 24px; font-weight: bold; }
+          .info { margin-bottom: 20px; }
+          .info p { margin: 4px 0; }
+          table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+          th { background: #f5f5f5; padding: 10px; text-align: left; border-bottom: 2px solid #ddd; }
+          .total { text-align: right; font-size: 18px; font-weight: bold; margin-top: 20px; padding-top: 20px; border-top: 2px solid #333; }
+          @media print { body { padding: 20px; } }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div>
+            <div class="title">${docTypeLabel}</div>
+            <p style="color: #666;">#${remito.remito_number}</p>
+          </div>
+          <div style="text-align: right;">
+            <p><strong>Fecha:</strong> ${formatDate(remito.created_at)}</p>
+          </div>
+        </div>
+        
+        <div class="info">
+          <p><strong>Cliente:</strong> ${remito.clients?.name || 'Sin especificar'}</p>
+          ${remito.clients?.cuit ? `<p><strong>CUIT:</strong> ${remito.clients.cuit}</p>` : ''}
+          ${remito.clients?.address ? `<p><strong>Direccion:</strong> ${remito.clients.address}</p>` : ''}
+          ${remito.clients?.vehicle_brand ? `<p><strong>Vehiculo:</strong> ${remito.clients.vehicle_brand} ${remito.clients.vehicle_model || ''} ${remito.clients.license_plate ? `- ${remito.clients.license_plate}` : ''}</p>` : ''}
+        </div>
+
+        ${remito.description ? `<div class="info"><p><strong>Notas:</strong> ${remito.description}</p></div>` : ''}
+
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 40px;">#</th>
+              <th>Descripcion</th>
+              <th style="width: 80px; text-align: center;">Cant.</th>
+              <th style="width: 100px; text-align: right;">P. Unit.</th>
+              <th style="width: 100px; text-align: right;">Subtotal</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemsHtml}
+          </tbody>
+        </table>
+
+        <div class="total">
+          TOTAL: $${Number(remito.total || 0).toLocaleString('es-AR')}
+        </div>
+
+        <script>
+          window.onload = function() { window.print(); }
+        </script>
+      </body>
+      </html>
+    `
+
+    printWindow.document.write(html)
+    printWindow.document.close()
+  }
+
   return (
     <div className="flex flex-col gap-6 p-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -332,10 +422,13 @@ export function RemitosContent({ remitos, clients, products }: RemitosContentPro
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
-                          <Button variant="ghost" size="icon" onClick={() => openEdit(remito)}>
+                          <Button variant="ghost" size="icon" onClick={() => handlePrint(remito)} title="Imprimir">
+                            <Printer className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => openEdit(remito)} title="Editar">
                             <Pencil className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="icon" onClick={() => openDelete(remito)}>
+                          <Button variant="ghost" size="icon" onClick={() => openDelete(remito)} title="Eliminar">
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
                         </div>

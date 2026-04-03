@@ -25,10 +25,17 @@ export default async function OrdersPage() {
     clients: o.client_id ? clientsMap.get(o.client_id) ?? null : null
   }))
 
+  // Fetch products for item selection
+  const { data: products } = await supabase
+    .from('products')
+    .select('id, name, brand, size, sale_price, stock')
+    .order('name')
+
   return (
     <OrdersContent
       orders={orders}
       clients={clients ?? []}
+      products={products ?? []}
     />
   )
 }
